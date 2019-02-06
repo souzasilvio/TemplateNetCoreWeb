@@ -16,6 +16,6 @@ namespace WebApp.Models
         public string Nome { get; set; }
         [Required(ErrorMessage = "Informe o e-mail do cliente")]
         public string Email { get; set; }
-
+        public string Telefone { get; set; }
     }
 }

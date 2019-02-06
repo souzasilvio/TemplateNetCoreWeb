@@ -6,22 +6,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Models;
+using WebApp.Repository;
 
 namespace WebApp.Controllers
 {
     public class ClientesController : Controller
     {
-        private readonly WebAppContext _context;
+        //private readonly WebAppContext _context;
+        private readonly IClienteRepository _repository;
 
-        public ClientesController(WebAppContext context)
+        public ClientesController(IClienteRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         // GET: Clientes
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Cliente.ToListAsync());
+            return View(await _repository.GetAllAsync());
         }
 
         // GET: Clientes/Details/5
@@ -32,8 +34,7 @@ namespace WebApp.Controllers
                 return NotFound();
             }
 
-            var cliente = await _context.Cliente
-                .FirstOrDefaultAsync(m => m.Codigo == id);
+            var cliente = await _repository.GetByIdAsync(id.Value);
             if (cliente == null)
             {
                 return NotFound();
@@ -53,12 +54,12 @@ namespace WebApp.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Codigo,Nome,Email")] Cliente cliente)
+        public async Task<IActionResult> Create([Bind("Codigo,Nome,Email,Telefone")] Cliente cliente)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(cliente);
-                await _context.SaveChangesAsync();
+
+                await _repository.CreateAsync(cliente);
                 return RedirectToAction(nameof(Index));
             }
             return View(cliente);
@@ -72,12 +73,12 @@ namespace WebApp.Controllers
                 return NotFound();
             }
 
-            var cliente = await _context.Cliente.FindAsync(id);
+            var cliente = await _repository.GetByIdAsync(id.Value);
             if (cliente == null)
             {
                 return NotFound();
             }
-            return View(cliente);
+            return View(cliente);            
         }
 
         // POST: Clientes/Edit/5
@@ -85,7 +86,7 @@ namespace WebApp.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Codigo,Nome,Email")] Cliente cliente)
+        public async Task<IActionResult> Edit(int id, [Bind("Codigo,Nome,Email,Telefone")] Cliente cliente)
         {
             if (id != cliente.Codigo)
             {
@@ -96,12 +97,11 @@ namespace WebApp.Controllers
             {
                 try
                 {
-                    _context.Update(cliente);
-                    await _context.SaveChangesAsync();
+                    await _repository.UpdateAsync(cliente);                    
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ClienteExists(cliente.Codigo))
+                    if (!await ClienteExists(cliente.Codigo))
                     {
                         return NotFound();
                     }
@@ -113,6 +113,7 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(cliente);
+
         }
 
         // GET: Clientes/Delete/5
@@ -123,14 +124,14 @@ namespace WebApp.Controllers
                 return NotFound();
             }
 
-            var cliente = await _context.Cliente
-                .FirstOrDefaultAsync(m => m.Codigo == id);
+            var cliente = await _repository.GetByIdAsync(id.Value);
             if (cliente == null)
             {
                 return NotFound();
             }
 
             return View(cliente);
+            
         }
 
         // POST: Clientes/Delete/5
@@ -138,15 +139,15 @@ namespace WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var cliente = await _context.Cliente.FindAsync(id);
-            _context.Cliente.Remove(cliente);
-            await _context.SaveChangesAsync();
+            var cliente = await _repository.GetByIdAsync(id);            
+            await _repository.DeleteAsync(cliente);
             return RedirectToAction(nameof(Index));
-        }
 
-        private bool ClienteExists(int id)
+        }
+        private async Task<bool> ClienteExists(int id)
         {
-            return _context.Cliente.Any(e => e.Codigo == id);
+            var lista = await _repository.GetAllAsync();            
+            return lista.Any(e => e.Codigo == id);            
         }
     }
 }
